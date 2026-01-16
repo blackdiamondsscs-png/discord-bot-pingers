@@ -2,77 +2,79 @@ name: 🤖 Discord Bot Pinger 24/7
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Каждые 5 минут
+    # ПРАВИЛЬНЫЙ формат cron (каждые 5 минут)
+    - cron: '*/5 * * * *'
+  
+  # Разрешить ручной запуск
   workflow_dispatch:
 
 jobs:
   ping-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
+    - name: 🕐 Покажи время
+      run: |
+        echo "🕐 Текущее время на сервере GitHub:"
+        echo "Дата: $(date)"
+        echo "Unix время: $(date +%s)"
+        echo ""
+        echo "⏰ Следующий запуск по cron через несколько минут"
+        
     - name: 🚀 Пинговать Discord бота
       run: |
-        echo "=== ЗАПУСК АВТОНОМНОГО ПИНГЕРА ==="
-        echo "🕐 Время: $(date '+%H:%M:%S')"
+        echo "=== ЗАПУСК ПИНГЕРА ==="
+        echo "🕐 Начало: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo ""
         
-        # === ИСПОЛЬЗУЙ ЭТОТ URL ===
+        # === ТВОЙ URL ===
         BOT_URL="https://Python-BlackDiamond6.repl.co"
         
         echo "🎯 Цель: $BOT_URL"
         echo ""
         
         # Функция для пинга
-        ping_endpoint() {
+        ping_url() {
           local url="$1"
-          echo "🔍 Проверяю: $url"
+          local name="$2"
           
+          echo "🔍 $name: $url"
+          START=$(date +%s)
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url")
+          END=$(date +%s)
+          TIME=$((END - START))
           
           if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Успех! Статус: $HTTP_CODE"
-            
-            # Покажем что вернул бот
-            RESPONSE=$(curl -s --max-time 15 "$url")
+            echo "✅ Успех! Статус: $HTTP_CODE, Время: ${TIME}с"
+            RESPONSE=$(curl -s --max-time 10 "$url")
             echo "   Ответ: $RESPONSE"
             return 0
           else
-            echo "⚠️ Код: $HTTP_CODE"
+            echo "⚠️ Проблема! Статус: $HTTP_CODE, Время: ${TIME}с"
             return 1
           fi
         }
         
-        # Пингуем все возможные endpoints
-        success_count=0
+        # Пингуем
+        echo "📡 Начинаю проверки..."
+        echo ""
         
-        echo "📡 Тестирую подключение..."
-        ping_endpoint "$BOT_URL" && success_count=$((success_count + 1))
+        ping_url "$BOT_URL" "Основной URL"
         echo ""
-        ping_endpoint "$BOT_URL/health" && success_count=$((success_count + 1))
+        ping_url "$BOT_URL/ping" "Эндпоинт /ping"
         echo ""
-        ping_endpoint "$BOT_URL/ping" && success_count=$((success_count + 1))
-        echo ""
-        ping_endpoint "$BOT_URL/status" && success_count=$((success_count + 1))
+        ping_url "$BOT_URL/health" "Эндпоинт /health"
         
         echo ""
-        echo "=== РЕЗУЛЬТАТЫ ==="
-        echo "✅ Успешных проверок: $success_count из 4"
-        
-        if [ $success_count -eq 0 ]; then
-          echo "⚠️ ВНИМАНИЕ: Бот не отвечает!"
-          echo "📋 Что проверить:"
-          echo "   1. Бот запущен на Replit?"
-          echo "   2. URL правильный? Попробуй открыть в браузере"
-          echo "   3. Может быть временная проблема с Replit"
-        else
-          echo "🎉 Бот работает! GitHub будет пинговать каждые 5 минут"
-        fi
-        
-        echo ""
-        echo "⏰ Следующий пинг через 5 минут"
-        echo "🌐 GitHub Actions работает 24/7"
+        echo "=== ЗАВЕРШЕНО ==="
+        echo "✅ Workflow выполнен успешно"
+        echo "🕐 Конец: $(date '+%H:%M:%S')"
         
     - name: 📊 Логирование
       if: always()
       run: |
-        echo "📅 Дата выполнения: $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "✅ Workflow завершен успешно"
+        echo "📅 GitHub Actions ID: ${{ github.run_id }}"
+        echo "🔢 Номер запуска: ${{ github.run_number }}"
+        echo "🎯 Event: ${{ github.event_name }}"
+        echo "🌐 Автономная работа 24/7"
