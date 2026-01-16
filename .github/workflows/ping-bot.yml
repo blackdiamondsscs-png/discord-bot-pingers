@@ -2,79 +2,84 @@ name: 🤖 Discord Bot Pinger 24/7
 
 on:
   schedule:
-    # ПРАВИЛЬНЫЙ формат cron (каждые 5 минут)
-    - cron: '*/5 * * * *'
-  
-  # Разрешить ручной запуск
+    - cron: '*/5 * * * *'  # Каждые 5 минут
   workflow_dispatch:
 
 jobs:
   ping-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     
     steps:
-    - name: 🕐 Покажи время
-      run: |
-        echo "🕐 Текущее время на сервере GitHub:"
-        echo "Дата: $(date)"
-        echo "Unix время: $(date +%s)"
-        echo ""
-        echo "⏰ Следующий запуск по cron через несколько минут"
-        
     - name: 🚀 Пинговать Discord бота
       run: |
         echo "=== ЗАПУСК ПИНГЕРА ==="
-        echo "🕐 Начало: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "🕐 Время: $(date '+%H:%M:%S')"
         echo ""
         
-        # === ТВОЙ URL ===
-        BOT_URL="https://Python-BlackDiamond6.repl.co"
+        # === ТВОЙ РАБОЧИЙ URL ===
+        BOT_URL="https://workspace.BlackDiamond6.repl.co"
         
         echo "🎯 Цель: $BOT_URL"
+        echo "📌 Этот URL получен из переменных Replit"
         echo ""
         
-        # Функция для пинга
-        ping_url() {
-          local url="$1"
-          local name="$2"
+        # Пробуем с разными таймаутами
+        echo "📡 Пробую подключиться..."
+        
+        success=false
+        
+        # Попытка 1: Основной пинг
+        echo "🔄 Попытка 1: Основной URL"
+        HTTP_CODE1=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BOT_URL" 2>/dev/null || echo "000")
+        
+        if [ "$HTTP_CODE1" = "200" ]; then
+          echo "✅ Успех! Статус: $HTTP_CODE1"
+          success=true
+        else
+          echo "⚠️ Код: $HTTP_CODE1"
           
-          echo "🔍 $name: $url"
-          START=$(date +%s)
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url")
-          END=$(date +%s)
-          TIME=$((END - START))
+          # Попытка 2: Через /ping
+          echo "🔄 Попытка 2: Эндпоинт /ping"
+          HTTP_CODE2=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BOT_URL/ping" 2>/dev/null || echo "000")
           
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Успех! Статус: $HTTP_CODE, Время: ${TIME}с"
-            RESPONSE=$(curl -s --max-time 10 "$url")
-            echo "   Ответ: $RESPONSE"
-            return 0
+          if [ "$HTTP_CODE2" = "200" ]; then
+            echo "✅ Успех через /ping! Статус: $HTTP_CODE2"
+            success=true
           else
-            echo "⚠️ Проблема! Статус: $HTTP_CODE, Время: ${TIME}с"
-            return 1
+            echo "⚠️ Код: $HTTP_CODE2"
           fi
-        }
-        
-        # Пингуем
-        echo "📡 Начинаю проверки..."
-        echo ""
-        
-        ping_url "$BOT_URL" "Основной URL"
-        echo ""
-        ping_url "$BOT_URL/ping" "Эндпоинт /ping"
-        echo ""
-        ping_url "$BOT_URL/health" "Эндпоинт /health"
+        fi
         
         echo ""
-        echo "=== ЗАВЕРШЕНО ==="
-        echo "✅ Workflow выполнен успешно"
-        echo "🕐 Конец: $(date '+%H:%M:%S')"
         
-    - name: 📊 Логирование
+        if [ "$success" = true ]; then
+          echo "🎉 БОТ РАБОТАЕТ!"
+          echo "📄 Последний ответ:"
+          curl -s --max-time 30 "$BOT_URL" | head -2
+        else
+          echo "❌ Бот не отвечает на запросы"
+          echo ""
+          echo "🔧 Возможные причины:"
+          echo "   1. Бот не запущен на Replit"
+          echo "   2. Проблемы с сетью Replit"
+          echo "   3. Веб-сервер Flask не запущен"
+          echo ""
+          echo "💡 Проверка:"
+          echo "   - Запущен ли бот на Replit?"
+          echo "   - Видишь ли ты '🤖 Discord Bot Active!' в консоли?"
+        fi
+        
+        echo ""
+        echo "✅ Workflow выполнен"
+        echo "⏰ Следующий запуск через 5 минут"
+        
+    - name: 📊 Информация
       if: always()
       run: |
-        echo "📅 GitHub Actions ID: ${{ github.run_id }}"
-        echo "🔢 Номер запуска: ${{ github.run_number }}"
-        echo "🎯 Event: ${{ github.event_name }}"
-        echo "🌐 Автономная работа 24/7"
+        echo ""
+        echo "=== ИНФОРМАЦИЯ ==="
+        echo "🌐 URL: https://workspace.BlackDiamond6.repl.co"
+        echo "⏰ Текущее время: $(date)"
+        echo "🔄 GitHub Actions будет работать 24/7"
+        echo "🔧 Не требует твоего ПК"
